@@ -22,7 +22,10 @@
 
 using System;
 using System.Collections;
+using System.Data.Common;
+#if !NETCOREAPP2_0
 using System.Data.OleDb;
+#endif
 using System.Text;
 using NHapi.Base.Log;
 
@@ -44,12 +47,12 @@ namespace NHapi.Base
 				{
 					try
 					{
-						OleDbConnection conn = NormativeDatabase.Instance.Connection;
-						OleDbCommand stmt = SupportClass.TransactionManager.manager.CreateStatement(conn);
-						OleDbCommand temp_OleDbCommand;
-						temp_OleDbCommand = stmt;
-						temp_OleDbCommand.CommandText = "select distinct table_id from TableValues";
-						OleDbDataReader rs = temp_OleDbCommand.ExecuteReader();
+						DbConnection conn = NormativeDatabase.Instance.Connection;
+						DbCommand stmt = SupportClass.TransactionManager.manager.CreateStatement(conn);
+						DbCommand temp_DbCommand;
+						temp_DbCommand = stmt;
+						temp_DbCommand.CommandText = "select distinct table_id from TableValues";
+						DbDataReader rs = temp_DbCommand.ExecuteReader();
 						int[] roomyList = new int[bufferSize];
 						int c = 0;
 						while (rs.Read())
@@ -62,7 +65,7 @@ namespace NHapi.Base
 						tableList = new int[c];
 						Array.Copy(roomyList, 0, tableList, 0, c);
 					}
-					catch (OleDbException sqle)
+					catch (DbException sqle)
 					{
 						throw new LookupException("Can't get table list from database: " + sqle.Message);
 					}
@@ -124,14 +127,14 @@ namespace NHapi.Base
 
 				try
 				{
-					OleDbConnection conn = NormativeDatabase.Instance.Connection;
-					OleDbCommand stmt = SupportClass.TransactionManager.manager.CreateStatement(conn);
+					DbConnection conn = NormativeDatabase.Instance.Connection;
+					DbCommand stmt = SupportClass.TransactionManager.manager.CreateStatement(conn);
 					StringBuilder sql = new StringBuilder("select table_value from TableValues where table_id = ");
 					sql.Append(table);
-					OleDbCommand temp_OleDbCommand;
-					temp_OleDbCommand = stmt;
-					temp_OleDbCommand.CommandText = sql.ToString();
-					OleDbDataReader rs = temp_OleDbCommand.ExecuteReader();
+					DbCommand temp_DbCommand;
+					temp_DbCommand = stmt;
+					temp_DbCommand.CommandText = sql.ToString();
+					DbDataReader rs = temp_DbCommand.ExecuteReader();
 
 					c = 0;
 					while (rs.Read())
@@ -142,7 +145,7 @@ namespace NHapi.Base
 					stmt.Dispose();
 					NormativeDatabase.Instance.returnConnection(conn);
 				}
-				catch (OleDbException sqle)
+				catch (DbException sqle)
 				{
 					throw new LookupException("Couldn't look up values for table " + table + ": " + sqle.Message);
 				}
@@ -175,12 +178,12 @@ namespace NHapi.Base
 
 			try
 			{
-				OleDbConnection conn = NormativeDatabase.Instance.Connection;
-				OleDbCommand stmt = SupportClass.TransactionManager.manager.CreateStatement(conn);
-				OleDbCommand temp_OleDbCommand;
-				temp_OleDbCommand = stmt;
-				temp_OleDbCommand.CommandText = sql.ToString();
-				OleDbDataReader rs = temp_OleDbCommand.ExecuteReader();
+				DbConnection conn = NormativeDatabase.Instance.Connection;
+				DbCommand stmt = SupportClass.TransactionManager.manager.CreateStatement(conn);
+				DbCommand temp_DbCommand;
+				temp_DbCommand = stmt;
+				temp_DbCommand.CommandText = sql.ToString();
+				DbDataReader rs = temp_DbCommand.ExecuteReader();
 				if (rs.Read())
 				{
 					description = Convert.ToString(rs[1 - 1]);
@@ -193,7 +196,7 @@ namespace NHapi.Base
 				stmt.Dispose();
 				NormativeDatabase.Instance.returnConnection(conn);
 			}
-			catch (OleDbException e)
+			catch (DbException e)
 			{
 				throw new LookupException("Can't find value " + value_Renamed + " in table " + table, e);
 			}

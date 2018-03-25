@@ -12,7 +12,13 @@
 using System;
 using System.Collections;
 using System.Data;
+using System.Data.Common;
+
+#if NETCOREAPP2_0
+using System.Data.SqlClient;
+#else
 using System.Data.OleDb;
+#endif
 using System.Globalization;
 using System.IO;
 using System.Reflection;
@@ -23,6 +29,32 @@ using System.Xml.Schema;
 
 namespace NHapi.Base
 {
+#if NETCOREAPP2_0
+	public static class OleDbSchemaGuid
+	{
+		public static Guid Catalogs { get; set; }
+		public static Guid Columns { get; set; }
+		public static Guid Column_Privileges{ get; set; }
+		public static Guid DbInfoLiterals { get; set; }
+		public static Guid Foreign_Keys { get; set; }
+		public static Guid Primary_Keys { get; set; }
+		public static Guid Procedures { get; set; }
+		public static Guid Procedure_Parameters { get; set; }
+		public static Guid Provider_Types { get; set; }
+		public static Guid Schemata { get; set; }
+		public static Guid Tables { get; set; }
+		public static Guid Table_Privileges{ get; set; }
+	}
+
+	public static class FakeOleDbStuff
+	{
+		public static DataTable GetOleDbSchemaTable(this DbConnection connection, Guid id, object blah)
+		{
+			throw new NotImplementedException();
+		}
+	}
+#endif
+
 	/// <summary>
 	/// This interface should be implemented by any class whose instances are intended 
 	/// to be executed by a thread.
@@ -1969,17 +2001,16 @@ namespace NHapi.Base
 		}
 
 		/*******************************/
-
 		public class TransactionManager
 		{
 			public static ConnectionHashTable manager = new ConnectionHashTable();
 
 			public class ConnectionHashTable : Hashtable
 			{
-				public OleDbCommand CreateStatement(OleDbConnection connection)
+				public DbCommand CreateStatement(DbConnection connection)
 				{
-					OleDbCommand command = connection.CreateCommand();
-					OleDbTransaction transaction;
+					DbCommand command = connection.CreateCommand();
+					DbTransaction transaction;
 					if (this[connection] != null)
 					{
 						ConnectionProperties Properties = ((ConnectionProperties) this[connection]);
@@ -1999,12 +2030,12 @@ namespace NHapi.Base
 					return command;
 				}
 
-				public void Commit(OleDbConnection connection)
+				public void Commit(DbConnection connection)
 				{
 					if (this[connection] != null && !((ConnectionProperties) this[connection]).AutoCommit)
 					{
 						ConnectionProperties Properties = ((ConnectionProperties) this[connection]);
-						OleDbTransaction transaction = Properties.Transaction;
+						DbTransaction transaction = Properties.Transaction;
 						transaction.Commit();
 						if (Properties.TransactionLevel == 0)
 							Properties.Transaction = connection.BeginTransaction();
@@ -2013,12 +2044,12 @@ namespace NHapi.Base
 					}
 				}
 
-				public void RollBack(OleDbConnection connection)
+				public void RollBack(DbConnection connection)
 				{
 					if (this[connection] != null && !((ConnectionProperties) this[connection]).AutoCommit)
 					{
 						ConnectionProperties Properties = ((ConnectionProperties) this[connection]);
-						OleDbTransaction transaction = Properties.Transaction;
+						DbTransaction transaction = Properties.Transaction;
 						transaction.Rollback();
 						if (Properties.TransactionLevel == 0)
 							Properties.Transaction = connection.BeginTransaction();
@@ -2027,7 +2058,7 @@ namespace NHapi.Base
 					}
 				}
 
-				public void SetAutoCommit(OleDbConnection connection, bool boolean)
+				public void SetAutoCommit(DbConnection connection, bool boolean)
 				{
 					if (this[connection] != null)
 					{
@@ -2044,7 +2075,7 @@ namespace NHapi.Base
 							}
 							else
 							{
-								OleDbTransaction transaction = Properties.Transaction;
+								DbTransaction transaction = Properties.Transaction;
 								if (transaction != null)
 								{
 									transaction.Commit();
@@ -2063,23 +2094,23 @@ namespace NHapi.Base
 					}
 				}
 
-				public OleDbCommand PrepareStatement(OleDbConnection connection, String sql)
+				public DbCommand PrepareStatement(DbConnection connection, String sql)
 				{
-					OleDbCommand command = CreateStatement(connection);
+					DbCommand command = CreateStatement(connection);
 					command.CommandText = sql;
 					command.CommandTimeout = 0;
 					return command;
 				}
 
-				public OleDbCommand PrepareCall(OleDbConnection connection, String sql)
+				public DbCommand PrepareCall(DbConnection connection, String sql)
 				{
-					OleDbCommand command = CreateStatement(connection);
+					DbCommand command = CreateStatement(connection);
 					command.CommandText = sql;
 					command.CommandTimeout = 0;
 					return command;
 				}
 
-				public void SetTransactionIsolation(OleDbConnection connection, int level)
+				public void SetTransactionIsolation(DbConnection connection, int level)
 				{
 					ConnectionProperties Properties;
 					if (level == (int) IsolationLevel.ReadCommitted)
@@ -2105,7 +2136,7 @@ namespace NHapi.Base
 					}
 				}
 
-				public int GetTransactionIsolation(OleDbConnection connection)
+				public int GetTransactionIsolation(DbConnection connection)
 				{
 					if (this[connection] != null)
 					{
@@ -2119,7 +2150,7 @@ namespace NHapi.Base
 						return 2;
 				}
 
-				public bool GetAutoCommit(OleDbConnection connection)
+				public bool GetAutoCommit(DbConnection connection)
 				{
 					if (this[connection] != null)
 						return ((ConnectionProperties) this[connection]).AutoCommit;
@@ -2134,7 +2165,7 @@ namespace NHapi.Base
 				/// <param name="command">Command object to be changed.</param>
 				/// <param name="parameterIndex">One-based index of the parameter to be set.</param>
 				/// <param name="parameter">The object containing the input parameter value.</param>
-				public void SetValue(OleDbCommand command, int parameterIndex, Object parameter)
+				public void SetValue(DbCommand command, int parameterIndex, Object parameter)
 				{
 					if (command.Parameters.Count < parameterIndex)
 						command.Parameters.Add(command.CreateParameter());
@@ -2147,12 +2178,12 @@ namespace NHapi.Base
 				/// <param name="command">Command object to be changed.</param>
 				/// <param name="parameterIndex">One-based index of the parameter to be set.</param>
 				/// <param name="targetSqlType">The SQL type to be sent to the database.</param>
-				public void SetNull(OleDbCommand command, int parameterIndex, int sqlType)
+				public void SetNull(DbCommand command, int parameterIndex, int sqlType)
 				{
 					if (command.Parameters.Count < parameterIndex)
 						command.Parameters.Add(command.CreateParameter());
 					command.Parameters[parameterIndex - 1].Value = Convert.DBNull;
-					command.Parameters[parameterIndex - 1].OleDbType = (OleDbType) sqlType;
+					command.Parameters[parameterIndex - 1].DbType = (DbType) sqlType;
 				}
 
 				/// <summary>
@@ -2163,12 +2194,12 @@ namespace NHapi.Base
 				/// <param name="parameterIndex">One-based index of the parameter to be set.</param>
 				/// <param name="parameter">The object containing the input parameter value.</param>
 				/// <param name="targetSqlType">The SQL type to be sent to the database.</param>
-				public void SetObject(OleDbCommand command, int parameterIndex, Object parameter, int targetSqlType)
+				public void SetObject(DbCommand command, int parameterIndex, Object parameter, int targetSqlType)
 				{
 					if (command.Parameters.Count < parameterIndex)
 						command.Parameters.Add(command.CreateParameter());
 					command.Parameters[parameterIndex - 1].Value = parameter;
-					command.Parameters[parameterIndex - 1].OleDbType = (OleDbType) targetSqlType;
+					command.Parameters[parameterIndex - 1].DbType = (DbType) targetSqlType;
 				}
 
 				/// <summary>
@@ -2178,7 +2209,7 @@ namespace NHapi.Base
 				/// <param name="command">Command object to be changed.</param>
 				/// <param name="parameterIndex">One-based index of the parameter to be set.</param>
 				/// <param name="parameter">The object containing the input parameter value.</param>
-				public void SetObject(OleDbCommand command, int parameterIndex, Object parameter)
+				public void SetObject(DbCommand command, int parameterIndex, Object parameter)
 				{
 					if (command.Parameters.Count < parameterIndex)
 						command.Parameters.Add(command.CreateParameter());
@@ -2190,7 +2221,7 @@ namespace NHapi.Base
 				/// </summary>
 				/// <param name="command">The command to be tested.</param>
 				/// <returns>The number of rows afected.</returns>
-				public int ExecuteUpdate(OleDbCommand command)
+				public int ExecuteUpdate(DbCommand command)
 				{
 					if (!(((ConnectionProperties) this[command.Connection]).AutoCommit))
 					{
@@ -2205,7 +2236,7 @@ namespace NHapi.Base
 				/// This method Closes the connection, and if the property of autocommit is true make the comit operation
 				/// </summary>
 				/// <param name="command"> The command to be closed</param>		
-				public void Close(OleDbConnection Connection)
+				public void Close(DbConnection Connection)
 				{
 					if ((this[Connection] != null) && !(((ConnectionProperties) this[Connection]).AutoCommit))
 					{
@@ -2217,7 +2248,7 @@ namespace NHapi.Base
 				private class ConnectionProperties
 				{
 					public bool AutoCommit;
-					public OleDbTransaction Transaction;
+					public DbTransaction Transaction;
 					public IsolationLevel TransactionLevel;
 				}
 			}
@@ -2231,14 +2262,14 @@ namespace NHapi.Base
 		public class OleDBSchema
 		{
 			private DataTable schemaData = null;
-			private OleDbConnection Connection;
+			private DbConnection Connection;
 			private ConnectionState ConnectionState;
 
 			/// <summary>
 			/// Constructs a new member with the provided connection
 			/// </summary>
 			/// <param name="Connection">The connection to assign to the new member</param>
-			public OleDBSchema(OleDbConnection Connection)
+			public OleDBSchema(DbConnection Connection)
 			{
 				this.Connection = Connection;
 			}
@@ -2250,11 +2281,16 @@ namespace NHapi.Base
 			{
 				get
 				{
+#if NETCOREAPP2_0
+					throw new NotImplementedException();
+#else
+
 					String result = "";
 					OpenConnection();
 					result = Connection.Provider;
 					CloseConnection();
 					return result;
+#endif
 				}
 			}
 
@@ -2317,10 +2353,10 @@ namespace NHapi.Base
 			}
 
 			/// <summary>
-			/// Gets the OleDBConnection for the current member
+			/// Gets the DbConnection for the current member
 			/// </summary>
 			/// <returns></returns>
-			public OleDbConnection GetConnection()
+			public DbConnection GetConnection()
 			{
 				return Connection;
 			}
@@ -2523,7 +2559,7 @@ namespace NHapi.Base
 				{
 					int result = -1;
 					OpenConnection();
-					OleDbTransaction Transaction = Connection.BeginTransaction();
+					DbTransaction Transaction = Connection.BeginTransaction();
 					result = (int) Transaction.IsolationLevel;
 					CloseConnection();
 					return result;
@@ -2701,7 +2737,6 @@ namespace NHapi.Base
 				}
 			}
 		}
-
 		/*******************************/
 
 		/// <summary>

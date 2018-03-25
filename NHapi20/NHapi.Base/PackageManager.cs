@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Text;
+#if !NETCOREAPP2_0
 using NHapi.Base.Model.Configuration;
+#endif
 
 namespace NHapi.Base
 {
@@ -11,7 +13,7 @@ namespace NHapi.Base
 		private static readonly PackageManager _instance = new PackageManager();
 		private List<Hl7Package> _packages = new List<Hl7Package>();
 
-		#region Constructors
+#region Constructors
 
 		static PackageManager()
 		{
@@ -23,9 +25,9 @@ namespace NHapi.Base
 			LoadAdditionalVersions();
 		}
 
-		#endregion
+#endregion
 
-		#region Properties
+#region Properties
 
 		public static PackageManager Instance
 		{
@@ -37,9 +39,9 @@ namespace NHapi.Base
 			return _packages;
 		}
 
-		#endregion
+#endregion
 
-		#region Methods
+#region Methods
 
 		private void LoadBaseVersions()
 		{
@@ -53,6 +55,9 @@ namespace NHapi.Base
 
 		private void LoadAdditionalVersions()
 		{
+#if NETCOREAPP2_0
+			throw new NotImplementedException();
+#else
 			var configSection = ConfigurationManager.GetSection("Hl7PackageCollection") as HL7PackageConfigurationSection;
 			if (configSection != null)
 			{
@@ -61,6 +66,7 @@ namespace NHapi.Base
 					_packages.Insert(0, new Hl7Package(package.Name, package.Version));
 				}
 			}
+#endif
 		}
 
 		public bool IsValidVersion(string version)
@@ -74,9 +80,9 @@ namespace NHapi.Base
 			return false;
 		}
 
-		#endregion
+#endregion
 
-		#region Static GetVersion and GetVersionPackage
+#region Static GetVersion and GetVersionPackage
 
 		/// <summary> Returns the path to the base package for model elements of the given version
 		/// - e.g. "NHapi.Model.VXXX".
@@ -111,6 +117,6 @@ namespace NHapi.Base
 			return packg;
 		}
 
-		#endregion
+#endregion
 	}
 }

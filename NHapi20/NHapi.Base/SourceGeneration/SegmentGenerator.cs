@@ -27,7 +27,10 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data.Common;
+#if !NETCOREAPP2_0
 using System.Data.OleDb;
+#endif
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -62,14 +65,14 @@ namespace NHapi.Base.SourceGeneration
 				SourceGenerator.makeDirectory(baseDirectory + PackageManager.GetVersionPackagePath(version) + "Segment");
 
 			//get list of data types
-			OleDbConnection conn = NormativeDatabase.Instance.Connection;
+			DbConnection conn = NormativeDatabase.Instance.Connection;
 			String sql =
 				"SELECT seg_code, [section] from HL7Segments, HL7Versions where HL7Segments.version_id = HL7Versions.version_id AND hl7_version = '" +
 				version + "'";
-			OleDbCommand temp_OleDbCommand = new OleDbCommand();
-			temp_OleDbCommand.Connection = conn;
-			temp_OleDbCommand.CommandText = sql;
-			OleDbDataReader rs = temp_OleDbCommand.ExecuteReader();
+			DbCommand temp_DbCommand = conn.CreateCommand();
+			temp_DbCommand.Connection = conn;
+			temp_DbCommand.CommandText = sql;
+			DbDataReader rs = temp_DbCommand.ExecuteReader();
 
 
 			ArrayList segments = new ArrayList();
@@ -79,7 +82,7 @@ namespace NHapi.Base.SourceGeneration
 				if (Char.IsLetter(segName[0]))
 					segments.Add(altSegName(segName));
 			}
-			temp_OleDbCommand.Dispose();
+			temp_DbCommand.Dispose();
 			NormativeDatabase.Instance.returnConnection(conn);
 
 			if (segments.Count == 0)
@@ -142,7 +145,7 @@ namespace NHapi.Base.SourceGeneration
 				ArrayList elements = new ArrayList();
 				SegmentElement se;
 				String segDesc = null;
-				OleDbConnection conn = NormativeDatabase.Instance.Connection;
+				DbConnection conn = NormativeDatabase.Instance.Connection;
 				StringBuilder sql = new StringBuilder();
 				sql.Append("SELECT HL7SegmentDataElements.seg_code, HL7SegmentDataElements.seq_no, ");
 				sql.Append("HL7SegmentDataElements.repetitional, HL7SegmentDataElements.repetitions, ");
@@ -160,11 +163,11 @@ namespace NHapi.Base.SourceGeneration
 				sql.Append("' and HL7Versions.hl7_version = '");
 				sql.Append(version);
 				sql.Append("' ORDER BY HL7SegmentDataElements.seg_code, HL7SegmentDataElements.seq_no;");
-				OleDbCommand stmt = SupportClass.TransactionManager.manager.CreateStatement(conn);
-				OleDbCommand temp_OleDbCommand;
-				temp_OleDbCommand = stmt;
-				temp_OleDbCommand.CommandText = sql.ToString();
-				OleDbDataReader rs = temp_OleDbCommand.ExecuteReader();
+				DbCommand stmt = SupportClass.TransactionManager.manager.CreateStatement(conn);
+				DbCommand temp_DbCommand;
+				temp_DbCommand = stmt;
+				temp_DbCommand.CommandText = sql.ToString();
+				DbDataReader rs = temp_DbCommand.ExecuteReader();
 
 				while (rs.Read())
 				{
@@ -492,7 +495,7 @@ namespace NHapi.Base.SourceGeneration
 
 				source.Append("\n}");
 			}
-			catch (OleDbException sqle)
+			catch (DbException sqle)
 			{
 				SupportClass.WriteStackTrace(sqle, Console.Error);
 			}
@@ -523,7 +526,7 @@ namespace NHapi.Base.SourceGeneration
 			}
 		}
 
-		private static int DetermineLength(OleDbDataReader rs)
+		private static int DetermineLength(DbDataReader rs)
 		{
 			string length = rs.GetValue(6 - 1) as string;
 			if (!string.IsNullOrEmpty(length) && length.Contains(".."))
@@ -537,6 +540,7 @@ namespace NHapi.Base.SourceGeneration
 			return Convert.ToInt32(length);
 		}
 
+#if !NETCOREAPP2_0
 		/// <summary>
 		/// Main class
 		/// </summary>
@@ -572,7 +576,7 @@ namespace NHapi.Base.SourceGeneration
 				SupportClass.WriteStackTrace(e, Console.Error);
 			}
 		}
-
+#endif
 		static SegmentGenerator()
 		{
 			log = HapiLogFactory.GetHapiLog(typeof (SegmentGenerator));

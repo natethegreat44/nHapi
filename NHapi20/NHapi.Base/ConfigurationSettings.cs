@@ -9,6 +9,9 @@ namespace NHapi.Base
 		{
 			get
 			{
+#if NETCOREAPP2_0
+				throw new NotImplementedException();
+#else
 				bool useFactory = false;
 				string useFactoryFromConfig = ConfigurationManager.AppSettings["UseFactory"];
 				if (useFactoryFromConfig != null && useFactoryFromConfig.Length > 0)
@@ -16,6 +19,7 @@ namespace NHapi.Base
 					useFactory = Convert.ToBoolean(useFactoryFromConfig);
 				}
 				return useFactory;
+#endif
 			}
 		}
 
@@ -25,12 +29,16 @@ namespace NHapi.Base
 		{
 			get
 			{
+#if NETCOREAPP2_0
+				throw new NotImplementedException();
+#else
 				string connFromConfig = ConfigurationManager.AppSettings["ConnectionString"];
 				if (string.IsNullOrEmpty(_connectionString) && !string.IsNullOrEmpty(connFromConfig))
 				{
 					_connectionString = connFromConfig;
 				}
 				return _connectionString;
+#endif
 			}
 			set { _connectionString = value; }
 		}

@@ -1,4 +1,6 @@
 using System;
+
+#if !NETCOREAPP2_0
 using System.Configuration;
 
 namespace NHapi.Base.Model.Configuration
@@ -60,3 +62,4 @@ namespace NHapi.Base.Model.Configuration
 		}
 	}
 }
+#endif

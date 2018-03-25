@@ -22,7 +22,11 @@
 
 using System;
 using System.Collections;
+#if NETCOREAPP2_0
+using System.Data.Common;
+#else
 using System.Data.OleDb;
+#endif
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -57,15 +61,15 @@ namespace NHapi.Base.SourceGeneration
 			SourceGenerator.makeDirectory(baseDirectory + PackageManager.GetVersionPackagePath(version) + "Datatype");
 			//get list of data types
 			ArrayList types = new ArrayList();
-			OleDbConnection conn = NormativeDatabase.Instance.Connection;
-			OleDbCommand stmt = SupportClass.TransactionManager.manager.CreateStatement(conn);
+			DbConnection conn = NormativeDatabase.Instance.Connection;
+			DbCommand stmt = SupportClass.TransactionManager.manager.CreateStatement(conn);
 			//get normal data types ... 
-			OleDbCommand temp_OleDbCommand;
-			temp_OleDbCommand = stmt;
-			temp_OleDbCommand.CommandText =
+			DbCommand temp_DbCommand;
+			temp_DbCommand = stmt;
+			temp_DbCommand.CommandText =
 				"select data_type_code from HL7DataTypes, HL7Versions where HL7Versions.version_id = HL7DataTypes.version_id and HL7Versions.hl7_version = '" +
 				version + "'";
-			OleDbDataReader rs = temp_OleDbCommand.ExecuteReader();
+			DbDataReader rs = temp_DbCommand.ExecuteReader();
 			while (rs.Read())
 			{
 				types.Add(Convert.ToString(rs[1 - 1]));
@@ -73,15 +77,15 @@ namespace NHapi.Base.SourceGeneration
 			rs.Close();
 			//get CF, CK, CM, CN, CQ sub-types ... 
 
-			OleDbCommand temp_OleDbCommand2;
-			temp_OleDbCommand2 = stmt;
-			temp_OleDbCommand2.CommandText = "select data_structure from HL7DataStructures, HL7Versions where (" +
+			DbCommand temp_DbCommand2;
+			temp_DbCommand2 = stmt;
+			temp_DbCommand2.CommandText = "select data_structure from HL7DataStructures, HL7Versions where (" +
 			                                 "data_type_code  = 'CF' or " + "data_type_code  = 'CK' or " +
 			                                 "data_type_code  = 'CM' or " + "data_type_code  = 'CN' or " +
 			                                 "data_type_code  = 'CQ') and " +
 			                                 "HL7Versions.version_id = HL7DataStructures.version_id and  HL7Versions.hl7_version = '" +
 			                                 version + "'";
-			rs = temp_OleDbCommand2.ExecuteReader();
+			rs = temp_DbCommand2.ExecuteReader();
 			while (rs.Read())
 			{
 				types.Add(Convert.ToString(rs[1 - 1]));
@@ -120,8 +124,8 @@ namespace NHapi.Base.SourceGeneration
 				throw new IOException("Can't create file in " + targetDirectory + " - it is not a directory.");
 
 			//get any components for this data type
-			OleDbConnection conn = NormativeDatabase.Instance.Connection;
-			OleDbCommand stmt = SupportClass.TransactionManager.manager.CreateStatement(conn);
+			DbConnection conn = NormativeDatabase.Instance.Connection;
+			DbCommand stmt = SupportClass.TransactionManager.manager.CreateStatement(conn);
 			StringBuilder sql = new StringBuilder();
 			//this query is adapted from the XML SIG informative document
 			sql.Append(
@@ -140,10 +144,10 @@ namespace NHapi.Base.SourceGeneration
 			sql.Append("' AND HL7Versions.hl7_version = '");
 			sql.Append(version);
 			sql.Append("' ORDER BY HL7DataStructureComponents.seq_no");
-			OleDbCommand temp_OleDbCommand;
-			temp_OleDbCommand = stmt;
-			temp_OleDbCommand.CommandText = sql.ToString();
-			OleDbDataReader rs = temp_OleDbCommand.ExecuteReader();
+			DbCommand temp_DbCommand;
+			temp_DbCommand = stmt;
+			temp_DbCommand.CommandText = sql.ToString();
+			DbDataReader rs = temp_DbCommand.ExecuteReader();
 
 			ArrayList dataTypes = new ArrayList(20);
 			ArrayList descriptions = new ArrayList(20);
@@ -468,7 +472,7 @@ namespace NHapi.Base.SourceGeneration
 			ret = ret.Replace("&", "and");
 			return ret;
 		}
-
+#if !NETCOREAPP2_0
 		//test
 		[STAThread]
 		public static void Main(String[] args)
@@ -487,7 +491,7 @@ namespace NHapi.Base.SourceGeneration
 				SupportClass.WriteStackTrace(e, Console.Error);
 			}
 		}
-
+#endif
 		static DataTypeGenerator()
 		{
 			log = HapiLogFactory.GetHapiLog(typeof (DataTypeGenerator));

@@ -30,8 +30,11 @@ using System.IO;
 using System.Text;
 using NHapi.Base;
 using NHapi.Base.Log;
+#if !NETCOREAPP2_0
 using System.Data.OleDb;
+#endif
 using System.Data;
+using System.Data.Common;
 
 namespace NHapi.Base.SourceGeneration
 {
@@ -62,14 +65,14 @@ namespace NHapi.Base.SourceGeneration
 		public static void makeAll(String baseDirectory, String version)
 		{
 			//get list of messages ...
-			using (OleDbConnection conn = NormativeDatabase.Instance.Connection)
+			using (DbConnection conn = NormativeDatabase.Instance.Connection)
 			{
 				String sql = getMessageListQuery(version);
-				OleDbCommand stmt = SupportClass.TransactionManager.manager.CreateStatement(conn);
-				OleDbCommand temp_OleDbCommand;
-				temp_OleDbCommand = stmt;
-				temp_OleDbCommand.CommandText = sql;
-				OleDbDataReader rs = temp_OleDbCommand.ExecuteReader();
+				DbCommand stmt = SupportClass.TransactionManager.manager.CreateStatement(conn);
+				DbCommand temp_DbCommand;
+				temp_DbCommand = stmt;
+				temp_DbCommand.CommandText = sql;
+				DbDataReader rs = temp_DbCommand.ExecuteReader();
 				ArrayList messages = new ArrayList();
 				ArrayList chapters = new ArrayList();
 				while (rs.Read())
@@ -174,12 +177,12 @@ namespace NHapi.Base.SourceGeneration
 			String sql = getSegmentListQuery(message, version);
 			//System.out.println(sql.toString()); 	
 			SegmentDef[] segments = new SegmentDef[200]; //presumably there won't be more than 200
-			OleDbConnection conn = NormativeDatabase.Instance.Connection;
-			OleDbCommand stmt = SupportClass.TransactionManager.manager.CreateStatement(conn);
-			OleDbCommand temp_OleDbCommand;
-			temp_OleDbCommand = stmt;
-			temp_OleDbCommand.CommandText = sql;
-			OleDbDataReader rs = temp_OleDbCommand.ExecuteReader();
+			DbConnection conn = NormativeDatabase.Instance.Connection;
+			DbCommand stmt = SupportClass.TransactionManager.manager.CreateStatement(conn);
+			DbCommand temp_DbCommand;
+			temp_DbCommand = stmt;
+			temp_DbCommand.CommandText = sql;
+			DbDataReader rs = temp_DbCommand.ExecuteReader();
 			int c = -1;
 			while (rs.Read())
 			{

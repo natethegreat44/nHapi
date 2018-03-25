@@ -21,9 +21,12 @@
 
 using System;
 using System.Data;
-using System.Data.OleDb;
+using System.Data.Common;
 using System.Diagnostics;
 using NHapi.Base.Log;
+#if NETCOREAPP2_0
+using System.Data.SqlClient;
+#endif
 
 namespace NHapi.Base
 {
@@ -47,7 +50,7 @@ namespace NHapi.Base
 	public class NormativeDatabase
 	{
 		/// <summary> Returns the singleton instance of NormativeDatabase.  </summary>
-		private OleDbConnection _conn;
+		private DbConnection _conn;
 
 		public static NormativeDatabase Instance
 		{
@@ -67,7 +70,7 @@ namespace NHapi.Base
 		/// <summary> Provides a Connection to the normative database. 
 		/// A new connection may be created if none are available.
 		/// </summary>
-		public virtual OleDbConnection Connection
+		public virtual DbConnection Connection
 		{
 			get
 			{
@@ -89,7 +92,11 @@ namespace NHapi.Base
 			}
 			catch (Exception)
 			{
-				_conn = new OleDbConnection(_connectionString);
+#if NETCOREAPP2_0
+				_conn = new SqlConnection(_connectionString);
+#else
+				_conn = new DbConnection(_connectionString);
+#endif
 				_conn.Open();
 			}
 		}
@@ -117,7 +124,11 @@ namespace NHapi.Base
 		private NormativeDatabase()
 		{
 			_connectionString = ConfigurationSettings.ConnectionString;
-			_conn = new OleDbConnection(_connectionString);
+#if NETCOREAPP2_0
+			_conn = new SqlConnection(_connectionString);
+#else
+			_conn = new DbConnection(_connectionString);
+#endif
 			_conn.Open();
 		}
 
@@ -125,24 +136,25 @@ namespace NHapi.Base
 		/// given connection is not in fact a connection to the normative database, it is
 		/// discarded. 
 		/// </summary>
-		public virtual void returnConnection(OleDbConnection conn)
+		public virtual void returnConnection(DbConnection conn)
 		{
 			//check if this is a normative DB connection 
 			_conn.Close();
 		}
 
 		//test
+#if !NETCOREAPP2_0
 		[STAThread]
 		public static void Main(String[] args)
 		{
 			try
 			{
-				OleDbConnection conn = Instance.Connection;
-				OleDbCommand stmt = SupportClass.TransactionManager.manager.CreateStatement(conn);
-				OleDbCommand temp_OleDbCommand;
-				temp_OleDbCommand = stmt;
-				temp_OleDbCommand.CommandText = "select * from TableValues";
-				OleDbDataReader rs = temp_OleDbCommand.ExecuteReader();
+				DbConnection conn = Instance.Connection;
+				DbCommand stmt = SupportClass.TransactionManager.manager.CreateStatement(conn);
+				DbCommand temp_DbCommand;
+				temp_DbCommand = stmt;
+				temp_DbCommand.CommandText = "select * from TableValues";
+				DbDataReader rs = temp_DbCommand.ExecuteReader();
 				while (rs.Read())
 				{
 					Object tabNum = rs.GetValue(1 - 1);
@@ -151,7 +163,7 @@ namespace NHapi.Base
 					Console.Out.WriteLine("Table: " + tabNum + " Value: " + val + " Description: " + desc);
 				}
 			}
-			catch (OleDbException e)
+			catch (DbException e)
 			{
 				log.Error("test msg!!", e);
 			}
@@ -160,6 +172,7 @@ namespace NHapi.Base
 				log.Error("test msg!!", e);
 			}
 		}
+#endif
 
 		static NormativeDatabase()
 		{
